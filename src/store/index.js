@@ -1,15 +1,21 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+import Vue from 'vue';
+// import Vuex from 'vuex';
+import Vuex from '../vuex';
+console.log(Vuex);
 
-Vue.use(Vuex)
+Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
+    name: 'aaa',
+    age: 123,
   },
-  mutations: {
+  mutations: {},
+  actions: {},
+  modules: {},
+  getters: {
+    myAge(state) {
+      return state.age + 19;
+    },
   },
-  actions: {
-  },
-  modules: {
-  }
-})
+});
