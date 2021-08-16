@@ -24,6 +24,10 @@ class Module {
   forEachChildren(cb) {
     this._children && forEach(this._children, cb);
   }
+  // 用于标识是否使用了namespace
+  get namespace() {
+    return !!this._raw.namespace;
+  }
 }
 
 export default Module;

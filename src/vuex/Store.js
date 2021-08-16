@@ -47,6 +47,8 @@ class Store {
 }
 
 function installModule(store, rootState, path, module) {
+  let ns = store._modules.getNamespace();
+
   if (path.length > 0) {
     let parent = path
       .slice(0, -1)
@@ -55,20 +57,20 @@ function installModule(store, rootState, path, module) {
     Vue.set(parent[path[path.length - 1]], module.state);
   }
   module.forEachGetter((fn, key) => {
-    store.wrapperGetters[key] = function() {
+    store.wrapperGetters[ns + key] = function() {
       return fn.call(store, module.state);
     };
   });
 
   module.forEachMutation((fn, key) => {
-    store.mutations[key] = store.mutations[key] || [];
-    store.mutations[key].push((payload) => {
+    store.mutations[ns + key] = store.mutations[ns + key] || [];
+    store.mutations[ns + key].push((payload) => {
       return fn.call(store, module.state, payload);
     });
   });
   module.forEachActions((fn, key) => {
-    store.actions[key] = store.mutations[key] || [];
-    store.actions[key].push((payload) => {
+    store.actions[ns + key] = store.mutations[ns + key] || [];
+    store.actions[ns + key].push((payload) => {
       return fn.call(store, module.state, payload);
     });
   });

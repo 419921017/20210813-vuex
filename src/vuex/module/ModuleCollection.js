@@ -6,6 +6,15 @@ class ModuleCollection {
     this.root = null;
     this.register([], options);
   }
+  getNamespace(path) {
+    let root = this.root;
+    let namespace = path.reduce((namespace, key) => {
+      let module = root.getChild(key);
+      root = module;
+      return module.namespace ? namespace + key + '/' : namespace;
+    }, '');
+    return namespace;
+  }
   register(path, rawModule) {
     let newModule = new Module(rawModule);
     // let newModule = {
