@@ -7,16 +7,55 @@ class Store {
     this._modules = new ModuleCollection(options);
     this.mutations = {};
     this.actions = {};
+    this.wrapperGetters = {};
     this.getters = {};
 
+    const computed = {};
+
     // 没有namespace的时候, getter会都放在根上, actions和mutations会被合并成数组
-    installModule(this, [], this._modules.root);
+    let state = options.state;
+    installModule(this, state, [], this._modules.root);
+
+    forEach(this.wrapperGetters, (getter, key) => {
+      computed[key] = () => {
+        return getter();
+      };
+
+      Object.defineProperty(this.getters, key, {
+        get: () => this._vm[key],
+      });
+    });
+
+    this._vm = new Vue({
+      data: {
+        $$state: state,
+      },
+      computed,
+    });
   }
+  get state() {
+    return this._vm._data.$$state;
+  }
+  commit = (mutationName, payload) => {
+    this.mutations[mutationName] &&
+      this.mutations[mutationName].forEach((fn) => fn(payload));
+  };
+  dispatch = (actionName, payload) => {
+    this.actions[actionName] &&
+      this.actions[actionName].forEach((fn) => fn(payload));
+  };
 }
 
-function installModule(store, path, module) {
+function installModule(store, rootState, path, module) {
+  if (path.length > 0) {
+    let parent = path
+      .slice(0, -1)
+      .reduce((memo, current) => memo[current], rootState);
+    // 添加响应式
+    Vue.set(parent[path[path.length - 1]], module.state);
+  }
   module.forEachGetter((fn, key) => {
-    store.getters[key] = function() {
+    store.wrapperGetters[key] = function() {
       return fn.call(store, module.state);
     };
   });
