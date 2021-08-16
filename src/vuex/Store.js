@@ -1,57 +1,41 @@
 import { Vue } from './install';
 import { forEach } from './utils';
+import ModuleCollection from './module/ModuleCollection';
 class Store {
   constructor(options) {
-    console.log(options);
-    let { state, mutations, actions, module, strict, getters } = options;
-
-    this.getters = {};
-    const computed = {};
-
-    forEach(getters, (fn, key) => {
-      computed[key] = () => fn(this.state);
-      Object.defineProperty(this.getters, key, {
-        get: () => this._vm[key], // 从computed上取值, 具备了缓存的功能
-      });
-    });
-
+    // 对用户参数进行格式化操作
+    this._modules = new ModuleCollection(options);
     this.mutations = {};
-    forEach(mutations, (fn, key) => {
-      // mutations: {changeAge: (state, payload) => {}}
-      this.mutations[key] = (payload) => fn.call(this, this.state, payload);
-    });
-
     this.actions = {};
+    this.getters = {};
 
-    forEach(actions, (fn, key) => {
-      this.actions[key] = (payload) => fn.call(this, this, payload);
-    });
-    // Object.keys(getters).forEach((key) => {
-    //   computed[key] = () => getters[key](this.state);
-    //   Object.defineProperty(this.getters, key, {
-    //     get: () => this._vm[key], // 从computed上取值, 具备了缓存的功能
-    //   });
-    // });
+    // 没有namespace的时候, getter会都放在根上, actions和mutations会被合并成数组
+    installModule(this, [], this._modules.root);
+  }
+}
 
-    // 状态再页面渲染时, 需要手机对应的渲染watcher, 这样状态才会更新视图
-    this._vm = new Vue({
-      data: {
-        $$state: state,
-      },
-      computed,
+function installModule(store, path, module) {
+  module.forEachGetter((fn, key) => {
+    store.getters[key] = function() {
+      return fn.call(store, module.state);
+    };
+  });
+
+  module.forEachMutation((fn, key) => {
+    store.mutations[key] = store.mutations[key] || [];
+    store.mutations[key].push((payload) => {
+      return fn.call(store, module.state, payload);
     });
-    // this.state = state;
-  }
-  // 类的属性访问器
-  get state() {
-    return this._vm._data.$$state;
-  }
-  commit = (type, payload) => {
-    this.mutations[type](payload);
-  };
-  dispatch = (type, payload) => {
-    this.actions[type](payload);
-  };
+  });
+  module.forEachActions((fn, key) => {
+    store.actions[key] = store.mutations[key] || [];
+    store.actions[key].push((payload) => {
+      return fn.call(store, module.state, payload);
+    });
+  });
+  module.forEachChildren((child, key) => {
+    installModule(store, path.concat(key), child);
+  });
 }
 
 export default Store;
