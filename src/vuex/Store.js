@@ -10,6 +10,9 @@ class Store {
     this.actions = {};
     this.wrapperGetters = {};
     // this.getters = {};
+    this._subscribe = [];
+    this._committing = false;
+    this.strict = options.strict;
 
     // 没有namespace的时候, getter会都放在根上, actions和mutations会被合并成数组
     let state = options.state;
@@ -33,7 +36,6 @@ class Store {
     // });
     resetVM(this, state);
 
-    this._subscribe = [];
     if (options.plugins) {
       options.plugins.forEach((plugin) => plugin(this));
     }
@@ -59,8 +61,10 @@ class Store {
     this._subscribe.push(fn);
   }
   replaceState(newState) {
-    this._vm._data.$$state = newState;
-    // 虽然替换了状态, 但是mutation, getter, action中的state都被写死了
+    this._committing(() => {
+      // 虽然替换了状态, 但是mutation, getter, action中的state都被写死了, 需要动态获取
+      this._vm._data.$$state = newState;
+    });
   }
   registerModule(path, module) {
     if (typeof path == 'string') {
@@ -72,6 +76,12 @@ class Store {
     installModule(this, this.state, path, module.newModule);
 
     resetVM(this, this.state);
+  }
+  // 切片, 同步执行
+  _withCommitting(fn) {
+    this._committing = true;
+    fn();
+    this._committing = false;
   }
 }
 function resetVM(store, state) {
@@ -93,7 +103,23 @@ function resetVM(store, state) {
     },
     computed,
   });
-
+  if (store.strict) {
+    store._vm.$watch(
+      () => store._vm._data.$$state,
+      () => {
+        console.assert(
+          store._committing,
+          'no mutate in mutation handler outside'
+        );
+      },
+      {
+        // 深度
+        deep: true,
+        // 同步执行
+        sync: true,
+      }
+    );
+  }
   oldVM && Vue.nextTick(() => oldVM.$destory());
 
   return store._vm;
@@ -112,8 +138,11 @@ function installModule(store, rootState, path, module) {
     let parent = path
       .slice(0, -1)
       .reduce((memo, current) => memo[current], rootState);
-    // 添加响应式
-    Vue.set(parent, path[path.length - 1], module.state);
+
+    store._withCommitting(() => {
+      // 添加响应式
+      Vue.set(parent, path[path.length - 1], module.state);
+    });
   }
   module.forEachGetter((fn, key) => {
     store.wrapperGetters[ns + key] = () =>
@@ -123,8 +152,11 @@ function installModule(store, rootState, path, module) {
   module.forEachMutation((fn, key) => {
     store.mutations[ns + key] = store.mutations[ns + key] || [];
     store.mutations[ns + key].push((payload) => {
-      // 先调用mutation
-      fn.call(store, getNewState(store, path), payload);
+      // 设置this.committing属性
+      store._withCommitting(() => {
+        // 先调用mutation
+        fn.call(store, getNewState(store, path), payload);
+      });
       // 在执行plugin, 不然状态有问题
       store._subscribe.forEach((fn) =>
         fn({ type: ns + key, payload }, store.state)

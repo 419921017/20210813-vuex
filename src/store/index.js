@@ -34,6 +34,7 @@ function persists() {
 
 export default new Vuex.Store({
   plugins: [log()],
+  strict: true,
   state: {
     name: 'aaa',
     age: 123,
@@ -53,6 +54,7 @@ export default new Vuex.Store({
       return state.age + 19;
     },
   },
+
   modules: {
     a: {
       namespace: true,
