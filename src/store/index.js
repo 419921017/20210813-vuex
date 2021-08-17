@@ -1,11 +1,39 @@
 import Vue from 'vue';
 // import Vuex from 'vuex';
 import Vuex from '../vuex';
-console.log(Vuex);
+import logger from 'vuex/dist/logger';
 
 Vue.use(Vuex);
 
+function log() {
+  return function(store) {
+    let prevState = JSON.stringify(store.state);
+    // vuex中所有的操作都是基于mutation, 状态变化都是通过mutation
+    // 直接手动更改状态, 此subscribe不会执行
+    store.subscribe((mutation, state) => {
+      console.log(prevState);
+      console.log(mutation);
+      console.log(JSON.stringify(state));
+      prevState = JSON.stringify(state);
+    });
+  };
+}
+
+function persists() {
+  return function(store) {
+    let localState = JSON.parse(localStorage.getItem('VUEX:STATE'));
+    if (localState) {
+      store.replaceState(localStorage.getItem('VUEX:STATE'));
+    }
+    // TODO: 防抖
+    store.subscribe((mutation, rootState) => {
+      localStorage.setItem('VUEX:STATE', JSON.stringify(rootState));
+    });
+  };
+}
+
 export default new Vuex.Store({
+  plugins: [log()],
   state: {
     name: 'aaa',
     age: 123,

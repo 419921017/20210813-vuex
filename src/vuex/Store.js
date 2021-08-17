@@ -32,10 +32,14 @@ class Store {
       },
       computed,
     });
+    this._subscribe = [];
+    if (options.plugins) {
+      options.plugins.forEach((plugin) => plugin(this));
+    }
 
-    console.log('this.getters', this.getters);
-    console.log('this.mutations', this.mutations);
-    console.log('this.actions', this.mutations);
+    // console.log('this.getters', this.getters);
+    // console.log('this.mutations', this.mutations);
+    // console.log('this.actions', this.mutations);
   }
   get state() {
     return this._vm._data.$$state;
@@ -50,6 +54,19 @@ class Store {
     this.actions[actionName] &&
       this.actions[actionName].forEach((fn) => fn(payload));
   };
+  subscribe(fn) {
+    this._subscribe.push(fn);
+  }
+  replaceState(newState) {
+    this._vm._data.$$state = newState;
+    // 虽然替换了状态, 但是mutation, getter, action中的state都被写死了
+  }
+}
+
+function getNewState(store, path) {
+  path.reduce((memo, current) => {
+    return memo[current];
+  }, store.state);
 }
 
 function installModule(store, rootState, path, module) {
@@ -63,14 +80,20 @@ function installModule(store, rootState, path, module) {
     Vue.set(parent, path[path.length - 1], module.state);
   }
   module.forEachGetter((fn, key) => {
-    store.wrapperGetters[ns + key] = () => fn.call(store, module.state);
+    store.wrapperGetters[ns + key] = () =>
+      fn.call(store, getNewState(store, path));
   });
 
   module.forEachMutation((fn, key) => {
     store.mutations[ns + key] = store.mutations[ns + key] || [];
-    store.mutations[ns + key].push((payload) =>
-      fn.call(store, module.state, payload)
-    );
+    store.mutations[ns + key].push((payload) => {
+      // 先调用mutation
+      fn.call(store, getNewState(store, path), payload);
+      // 在执行plugin, 不然状态有问题
+      store._subscribe.forEach((fn) =>
+        fn({ type: ns + key, payload }, store.state)
+      );
+    });
   });
 
   module.forEachActions((fn, key) => {
