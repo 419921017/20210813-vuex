@@ -1,13 +1,18 @@
 <template>
   <div id="app">
     <div>
-      {{$store.state.name}}
+      state = {{$store.state.age}}
+      <button @click="$store.commit('changeAge', 10)">state</button>
+
     </div>
     <div>
-      {{$store.state.age}}
+      a = {{$store.state.a.age}}
+      <button @click="$store.commit('a/changeAge', 10)">state.a</button>
+
     </div>
     <div>
-      {{$store.getters.myAge}}
+      a.ac = {{$store.state.a.ac.age}}
+      <button @click="$store.commit('a/ac/changeAge', 10)">a.ac</button>
     </div>
   </div>
 </template>

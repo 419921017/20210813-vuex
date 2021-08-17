@@ -20,7 +20,6 @@ export default new Vuex.Store({
       commit('changeAge', payload);
     },
   },
-  modules: {},
   getters: {
     myAge(state) {
       return state.age + 19;
@@ -32,6 +31,11 @@ export default new Vuex.Store({
       state: {
         name: 'a1',
         age: 11,
+      },
+      actions: {
+        changeAge({ commit }, payload) {
+          commit('changeAge', payload);
+        },
       },
       mutations: {
         changeAge(state, payload) {
@@ -45,9 +49,20 @@ export default new Vuex.Store({
       },
       modules: {
         ac: {
+          namespace: true,
           state: {
             name: 'ac1',
             age: 111,
+          },
+          actions: {
+            changeAge({ commit }, payload) {
+              commit('changeAge', payload);
+            },
+          },
+          mutations: {
+            changeAge(state, payload) {
+              state.age += payload;
+            },
           },
         },
       },
@@ -57,6 +72,16 @@ export default new Vuex.Store({
       state: {
         name: 'b1',
         age: 13,
+      },
+      mutations: {
+        changeAge(state, payload) {
+          state.age += payload;
+        },
+      },
+      actions: {
+        changeAge({ commit }, payload) {
+          commit('changeAge', payload);
+        },
       },
       getters: {
         bAge(state) {

@@ -32,7 +32,8 @@ class ModuleCollection {
         .slice(0, -1)
         .reduce((memo, current) => memo.getChild(current), this.root);
 
-      parent.addChild([path[path.length - 1]], newModule);
+      console.log(path[path.length - 1]);
+      parent.addChild(path[path.length - 1], newModule);
     }
     if (rawModule.modules) {
       forEach(rawModule.modules, (module, key) => {

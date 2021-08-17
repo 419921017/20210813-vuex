@@ -5,7 +5,7 @@ function install(_Vue) {
   Vue.mixin({
     beforeCreate() {
       // this代表的是每个组件的实例
-      console.log(this);
+      //   console.log(this);
       let options = this.$options;
       if (options.store) {
         // 根元素
