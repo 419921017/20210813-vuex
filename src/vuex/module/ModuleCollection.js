@@ -17,6 +17,8 @@ class ModuleCollection {
   }
   register(path, rawModule) {
     let newModule = new Module(rawModule);
+    // 将格式化的module挂载到原来的module上
+    rawModule.newModule = newModule;
     // let newModule = {
     //   _raw: rawModule,
     //   _children: {},
@@ -32,7 +34,7 @@ class ModuleCollection {
         .slice(0, -1)
         .reduce((memo, current) => memo.getChild(current), this.root);
 
-      console.log(path[path.length - 1]);
+      //   console.log(path[path.length - 1]);
       parent.addChild(path[path.length - 1], newModule);
     }
     if (rawModule.modules) {
